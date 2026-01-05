@@ -1,15 +1,10 @@
-import json
 from Utiliy.JSONUtils import JSONUtils
-
-class InsufficientBalanceError(Exception):
-    """"Exception raised for insufficient account balance"""
-    pass
 
 class BankSystem:
     def __init__(self):
         self.accounts = []
-        self.bank_service = BankService(self.accounts)
         self.json_utils = JSONUtils()
+        self.bank_service = BankService(self.accounts, self.json_utils)
 
     def start_bank(self):
         print('Welcome to Banking Service!!')
@@ -39,7 +34,7 @@ class BankSystem:
 
                 elif user_input == 3:
                     name = input("Enter account name: ").title()
-                    amount = int(input("Enter amount to deposit: "))
+                    amount = int(input("Enter amount to withdraw: "))
                     self.json_utils.withdraw(name, amount)
 
                 elif user_input == 4:
@@ -60,7 +55,6 @@ class BankSystem:
         except ValueError:
             print("Enter integer value")
 
-
 class BankAccount:
     def __init__(self, name, address, phone, email):
         self.name = name
@@ -69,16 +63,10 @@ class BankAccount:
         self.email = email
         self.balance = 0
 
-class SavingAccount(BankAccount):
-    def __init__(self):
-        super().__init__(self)
-        self.interest = 0.0278
-
-
 class BankService:
-    def __init__(self, accounts):
+    def __init__(self, accounts, json_utils):
         self.accounts = accounts
-        self.json_utils = JSONUtils()
+        self.json_utils = json_utils
 
     def create_account(self):
         name = input("Enter account name: ").title()
@@ -106,39 +94,37 @@ class BankService:
         return BankAccount(name, address, phone, email)
 
     def update_account(self):
-        name = input("Enter account name: ").title()
-        json_data = JSONUtils()
-        if name in json_data.df['name'].values:
-            newname = input(f"\nOld Name: {name} \nEnter New Name: ")
-            if newname.strip():
-                json_data.df[json_data.df["name"] == name, 'name'] = newname.title()
+        user_name = input("Enter account name: ").title()
+        if user_name in self.json_utils.df['name'].values:
+            row_ind = self.json_utils.df.index[self.json_utils.df['name'] == user_name][0]
 
-                while True:
-                    phone = input(f"Old phone: {acc['phone']} \n Enter New Phone: ")
-                    if len(phone) == 10 and phone.startswith(("97", "98")):
-                        acc["phone"] = phone
-                        break
-                    print("Invalid phone number!")
-
-                while True:
-                    mail = input(f"Old Email: {acc['email']} \n Enter new Email: ")
-                    if mail.endswith("@gmail.com"):
-                        acc["email"] = mail
-                        break
-                    print("Invalid email!")
-
-                print("Account updated Successfully")
-                return
-        print("Account Not found")
+            new_name = input(f"\nOld Name: {self.json_utils.df.at[row_ind, 'name']} \nEnter New Name: ")
+            self.json_utils.df.at[row_ind, 'name'] = new_name
+            while True:
+                phone = input(f"Old phone: {self.json_utils.df.at[row_ind, 'phone']} \n Enter New Phone: ")
+                if len(phone) == 10 and phone.startswith(('97', '98')):
+                    self.json_utils.df.at[row_ind, 'phone'] = phone
+                    break
+                print("Invalid phone number!")
+            while True:
+                new_email = input(f"Old email: {self.json_utils.df.at[row_ind, 'email']} \n Enter New Email: ")
+                if new_email.endswith("@gmail.com"):
+                    self.json_utils.df.at[row_ind, 'email'] = new_email
+                    break
+                print("Invalid Email")
+            self.json_utils.df.to_json(self.json_utils.json_path, orient='records', indent=4)
+            print("Account Updated Successfully")
+            return
+        print('Account not found')
 
     def delete_account(self):
         name = input("Enter account name: ").title()
-        json_data = self.json_utils.read_json()
-        for acc in json_data:
-            if acc['name'] == name:
-                del acc
-                print("Account deleted Successfully!")
-        print("Account not found")
+        if name in self.json_utils.df['name'].values:
+            self.json_utils.df = self.json_utils.df[self.json_utils.df['name'] != name]
+            self.json_utils.df.to_json(self.json_utils.json_path, orient='records', indent=4)
+            print(f"Account '{name}' deleted successfully!")
+        else:
+            print("Account not found")
 
 
 def main():
