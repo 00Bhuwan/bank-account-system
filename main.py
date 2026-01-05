@@ -33,13 +33,17 @@ class BankSystem:
                     print("Account created successfully!")
 
                 elif user_input == 2:
-                    self.bank_service.deposit()
+                    name = input("Enter account name: ").title()
+                    amount = int(input("Enter amount to deposit: "))
+                    self.json_utils.deposit(name, amount)
 
                 elif user_input == 3:
-                    self.bank_service.withdraw()
+                    name = input("Enter account name: ").title()
+                    amount = int(input("Enter amount to deposit: "))
+                    self.json_utils.withdraw(name, amount)
 
                 elif user_input == 4:
-                    self.bank_service.list_accounts()
+                    self.json_utils.list_accounts()
 
                 elif user_input == 5:
                     self.bank_service.update_account()
@@ -101,52 +105,13 @@ class BankService:
 
         return BankAccount(name, address, phone, email)
 
-    def deposit(self):
-        name = input("Enter account name: ").title()
-        json_data = self.json_utils.read_json()
-        for acc in json_data:
-            if acc["name"] == name:
-                amount = int(input("Enter amount to deposit: "))
-                acc["balance"] += amount
-                with open(self.json_utils.json_path, "w") as file:
-                    json.dump(json_data, file, indent=4)
-                print("Deposit successful!")
-                return
-        print("Account not found!")
-
-    def withdraw(self):
-        name = input("Enter account name: ").title()
-        json_data = self.json_utils.read_json()
-        for acc in json_data:
-            if acc["name"] == name:
-                amount = int(input("Enter amount to withdraw: "))
-                if amount > acc["balance"]:
-                    raise InsufficientBalanceError
-                else:
-                    acc["balance"] -= amount
-                    with open(self.json_utils.json_path, "w") as file:
-                        json.dump(json_data, file, indent=4)
-                    print('withdraw success')
-                    return
-        print("Account not found!")
-
-
-    def list_accounts(self):
-        json_data =  self.json_utils.read_json()
-        for data in json_data:
-            if isinstance(data,dict):
-                for key, value in data.items():
-                    print(f'{key}: {value}')
-            print(f'-----------------------')
-
     def update_account(self):
         name = input("Enter account name: ").title()
-        json_data = self.json_utils.read_json()
-        for acc in json_data:
-            if acc["name"] == name:
-                newname = input(f"\nOld Name: {acc['name']} \nEnter New Name: ")
-                if newname.strip():
-                    acc["name"] = newname.title()
+        json_data = JSONUtils()
+        if name in json_data.df['name'].values:
+            newname = input(f"\nOld Name: {name} \nEnter New Name: ")
+            if newname.strip():
+                json_data.df[json_data.df["name"] == name, 'name'] = newname.title()
 
                 while True:
                     phone = input(f"Old phone: {acc['phone']} \n Enter New Phone: ")
@@ -162,8 +127,6 @@ class BankService:
                         break
                     print("Invalid email!")
 
-                with open(self.json_utils.json_path, "w") as file:
-                    json.dump(json_data, file, indent=4)
                 print("Account updated Successfully")
                 return
         print("Account Not found")
